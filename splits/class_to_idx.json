@@ -11,5 +11,7 @@
   "Tomato_Septoria_leaf_spot": 9,
   "Tomato_Spider_mites_Two_spotted_spider_mite": 10,
   "Tomato__Target_Spot": 11,
-  "Tomato__Tomato_YellowLeaf__Curl_Virus": 12
+  "Tomato__Tomato_YellowLeaf__Curl_Virus": 12,
+  "Tomato__Tomato_mosaic_virus": 13,
+  "Tomato_healthy": 14
 }
