@@ -1,0 +1,32 @@
+# Dataset (pesa ~300 MB; cada integrante lo descarga en PlantVillage/)
+PlantVillage/
+data/
+
+# Caché regenerable: embeddings, hashes, metadatos y checkpoints de modelos
+cache/
+
+# Resultados de pruebas rápidas (FT_QUICK=1)
+results/*_quick/
+
+# Python / Jupyter
+__pycache__/
+*.py[cod]
+.ipynb_checkpoints/
+.venv/
+venv/
+env/
+ml_env/
+
+# Secretos y configuración local
+.env
+kaggle.json
+
+# Instrucciones locales para Claude Code
+CLAUDE.md
+
+# Editor / SO
+.vscode/
+.idea/
+.claude/
+.DS_Store
+Thumbs.db
