@@ -1,8 +1,8 @@
-ep 1/8 | train_loss 0.4386 | val_loss 0.0973 | val_acc 0.9647 | val_macro_f1 0.9591 | 260s
-ep 2/8 | train_loss 0.1663 | val_loss 0.0636 | val_acc 0.9763 | val_macro_f1 0.9789 | 234s
-ep 3/8 | train_loss 0.1011 | val_loss 0.0391 | val_acc 0.9878 | val_macro_f1 0.9886 | 258s
-ep 4/8 | train_loss 0.0748 | val_loss 0.0354 | val_acc 0.9888 | val_macro_f1 0.9878 | 238s
-ep 5/8 | train_loss 0.0582 | val_loss 0.0275 | val_acc 0.9919 | val_macro_f1 0.9922 | 238s
-ep 6/8 | train_loss 0.0480 | val_loss 0.0256 | val_acc 0.9939 | val_macro_f1 0.9942 | 239s
-ep 7/8 | train_loss 0.0370 | val_loss 0.0226 | val_acc 0.9949 | val_macro_f1 0.9951 | 241s
-ep 8/8 | train_loss 0.0377 | val_loss 0.0193 | val_acc 0.9953 | val_macro_f1 0.9952 | 238s
+ep 1/8 | train_loss 0.4368 | val_loss 0.1127 | val_acc 0.9654 | val_macro_f1 0.9660 | 31s
+ep 2/8 | train_loss 0.1554 | val_loss 0.0644 | val_acc 0.9793 | val_macro_f1 0.9801 | 32s
+ep 3/8 | train_loss 0.1074 | val_loss 0.0531 | val_acc 0.9858 | val_macro_f1 0.9865 | 35s
+ep 4/8 | train_loss 0.0754 | val_loss 0.0422 | val_acc 0.9888 | val_macro_f1 0.9885 | 38s
+ep 5/8 | train_loss 0.0641 | val_loss 0.0329 | val_acc 0.9912 | val_macro_f1 0.9919 | 37s
+ep 6/8 | train_loss 0.0470 | val_loss 0.0248 | val_acc 0.9915 | val_macro_f1 0.9921 | 38s
+ep 7/8 | train_loss 0.0375 | val_loss 0.0242 | val_acc 0.9932 | val_macro_f1 0.9936 | 36s
+ep 8/8 | train_loss 0.0336 | val_loss 0.0261 | val_acc 0.9936 | val_macro_f1 0.9942 | 33s

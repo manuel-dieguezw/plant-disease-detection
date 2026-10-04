@@ -23,6 +23,7 @@ SEED = 42
 IMG_SIZE = 224
 IMAGENET_MEAN = [0.485, 0.456, 0.406]
 IMAGENET_STD = [0.229, 0.224, 0.225]
+DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 eval_tf = v2.Compose([
     v2.Resize(IMG_SIZE), v2.CenterCrop(IMG_SIZE),
@@ -85,13 +86,14 @@ def build_backbone(name):
 
 
 @torch.no_grad()
-def extract_features(net, split_df, batch_size=64, num_workers=0, desc=""):
+def extract_features(net, split_df, batch_size=64, num_workers=0, desc="", device=DEVICE):
     from tqdm.auto import tqdm
+    net = net.to(device)
     loader = DataLoader(PlantDataset(split_df, transform=eval_tf), batch_size=batch_size,
                         shuffle=False, num_workers=num_workers)
     feats = []
     for xb, _ in tqdm(loader, desc=desc):
-        feats.append(net(xb).numpy())
+        feats.append(net(xb.to(device)).cpu().numpy())
     return np.concatenate(feats)
 
 
@@ -170,18 +172,21 @@ def set_train_mode(net):
 
 
 @torch.no_grad()
-def predict(net, loader):
+def predict(net, loader, device=DEVICE):
     net.eval()
     logits, ys = [], []
     for xb, yb in loader:
-        logits.append(net(xb).numpy()); ys.append(yb.numpy())
+        xb = xb.to(device)
+        logits.append(net(xb).cpu().numpy())
+        ys.append(yb.numpy())
     return np.concatenate(logits), np.concatenate(ys)
 
 
 def fit(net, train_loader, val_loader, epochs, lr_head=1e-3, lr_backbone=3e-4, weight_decay=1e-4,
-        seed=SEED, log_path=None):
+        seed=SEED, log_path=None, device=DEVICE):
     """Entrena con AdamW + cosine schedule. Devuelve (historial, mejor state_dict por macro-F1 en val)."""
     torch.manual_seed(seed)
+    net.to(device)
     head_ids = {id(p) for p in net.classifier.parameters()}
     head = [p for p in net.parameters() if p.requires_grad and id(p) in head_ids]
     back = [p for p in net.parameters() if p.requires_grad and id(p) not in head_ids]
@@ -195,18 +200,19 @@ def fit(net, train_loader, val_loader, epochs, lr_head=1e-3, lr_backbone=3e-4, w
         set_train_mode(net)
         run_loss, n = 0.0, 0
         for xb, yb in train_loader:
+            xb, yb = xb.to(device), yb.to(device)
             opt.zero_grad()
             loss = loss_fn(net(xb), yb)
             loss.backward(); opt.step(); sched.step()
             run_loss += loss.item() * len(xb); n += len(xb)
-        logits, yv = predict(net, val_loader)
+        logits, yv = predict(net, val_loader, device=device)
         val_loss = loss_fn(torch.tensor(logits), torch.tensor(yv)).item()
         m = metrics(yv, logits.argmax(1))
         rec = {"epoch": ep, "train_loss": run_loss / n, "val_loss": val_loss,
                "val_accuracy": m["accuracy"], "val_macro_f1": m["macro_f1"], "seconds": time.time() - t0}
         history.append(rec)
         if m["macro_f1"] > best_f1:
-            best_f1, best_state = m["macro_f1"], copy.deepcopy(net.state_dict())
+            best_f1, best_state = m["macro_f1"], copy.deepcopy({k: v.cpu() for k, v in net.state_dict().items()})
         line = (f"ep {ep}/{epochs} | train_loss {rec['train_loss']:.4f} | val_loss {val_loss:.4f} | "
                 f"val_acc {m['accuracy']:.4f} | val_macro_f1 {m['macro_f1']:.4f} | {rec['seconds']:.0f}s")
         print(line, flush=True)
