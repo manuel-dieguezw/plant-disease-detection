@@ -113,8 +113,11 @@ Para auditar en qué regiones de la imagen se basa el mejor modelo aplicamos
 Grad-CAM~\cite{selvaraju2017gradcam} sobre la última capa convolucional del backbone (un mapa
 de $5\times5$ a la resolución de entrada), calculado para la clase predicha. Además del
 análisis visual, cuantificamos la atención del modelo sobre todo el conjunto de test. Para
-cada imagen segmentamos la hoja con un umbral de Otsu sobre el canal de saturación (el fondo
-de laboratorio es poco saturado), seguido de limpieza morfológica. Con la máscara $M$
+cada imagen segmentamos la hoja aprovechando el fondo uniforme: estimamos el color del fondo
+en el borde de la imagen y aplicamos un umbral de Otsu sobre la distancia cromática a ese
+color en el plano $(a^*, b^*)$ de CIELAB, seguido de limpieza morfológica y relleno de
+huecos. Usar solo la cromaticidad evita que las sombras se confundan con la hoja y conserva
+las lesiones oscuras. Con la máscara $M$
 resultante y el mapa Grad-CAM normalizado $L$ calculamos la fracción de la activación que recae 
 sobre la hoja:
 \begin{equation}

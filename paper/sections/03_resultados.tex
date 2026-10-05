@@ -1,17 +1,134 @@
 \section{Resultados experimentales y análisis}
 \label{sec:resultados}
 
+% Figuras de ancho completo: se declaran al inicio para que LaTeX las ubique arriba de una página.
+\begin{figure*}[t]
+\centering
+\includegraphics[width=\textwidth]{gradcam_ejemplos.pdf}
+\caption{Grad-CAM del modelo EfficientNet-B0 con augmentation sobre imágenes de test. Las tres
+columnas de la izquierda muestran aciertos típicos (imagen con la mediana de $E_{\text{hoja}}$
+dentro de su clase) y las tres de la derecha, los errores con mayor confianza. El contorno
+blanco indica la máscara de la hoja usada para calcular $E_{\text{hoja}}$.}
+\label{fig:gradcam_ejemplos}
+\end{figure*}
+
 \subsection{Comparación de backbones (linear probe)}
 \label{subsec:res_linear_probe}
+La Tabla~\ref{tab:linear_probe} resume el desempeño de una capa lineal entrenada sobre los
+embeddings congelados de cada backbone. Sin modificar ningún peso preentrenado, todas las
+arquitecturas superan el 94\,\% de macro-F1 en test, lo que confirma que las representaciones
+de ImageNet transfieren bien a este dominio. Las arquitecturas diseñadas para dispositivos
+móviles superan a ResNet18 (macro-F1 0,960 contra 0,942) a pesar de tener entre 4 y 12 veces
+menos parámetros. Entre ellas, las diferencias en test son menores a 0,002, del orden de la
+variabilidad entre validación y test: EfficientNet-B0 obtiene el mayor macro-F1 en validación
+y MobileNetV3-Small, uno prácticamente igual con una extracción 3,3 veces más rápida. La
+entropía cruzada ponderada no mostró un beneficio consistente: modificó el macro-F1 en test
+entre $-0{,}007$ y $+0{,}004$ según el modelo, por lo que no la utilizamos en el fine-tuning.
+
+\begin{table}[t]
+\centering
+\caption{Linear probe sobre backbones congelados (entropía cruzada sin ponderar)}
+\label{tab:linear_probe}
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{@{}lccccc@{}}
+\toprule
+\textbf{Backbone} & \textbf{Parám.} & \textbf{Extracción} & \multicolumn{2}{c}{\textbf{Macro-F1}} & \textbf{Bal. acc.} \\
+\cmidrule(lr){4-5}
+ & (M) & (img/s) & val & test & test \\
+\midrule
+MobileNetV3-Small & 0,9  & 208,6 & 0,972          & 0,960          & 0,962 \\
+MobileNetV3-Large & 3,0  & 91,1  & 0,967          & 0,960          & 0,957 \\
+EfficientNet-B0   & 4,0  & 62,7  & \textbf{0,974} & 0,959          & 0,961 \\
+ResNet18          & 11,2 & 55,4  & 0,943          & 0,942          & 0,941 \\
+\bottomrule
+\end{tabular}
+\end{table}
 
 \subsection{Fine-tuning con y sin data augmentation}
 \label{subsec:res_finetuning}
+El fine-tuning parcial mejora de forma sustancial el linear probe
+(Tabla~\ref{tab:finetuning}). El macro-F1 en test pasa de 0,960 a 0,986 en MobileNetV3-Small
+y de 0,959 a 0,994 en EfficientNet-B0, lo que equivale a reducir la fracción de error
+($1-\text{macro-F1}$) un 65\,\% y un 85\,\%, respectivamente. Adaptar las últimas etapas del
+backbone resulta, entonces, mucho más determinante que la elección de la arquitectura en la
+etapa de linear probe. EfficientNet-B0 supera a MobileNetV3-Small en todas las métricas, con
+la mitad de errores, pero su entrenamiento demora tres veces más.
+
+El data augmentation no mejoró el desempeño en el test de PlantVillage: las diferencias
+entre las corridas con y sin augmentation son de a lo sumo 0,002 en macro-F1 (6 imágenes de
+2\,949), un margen que no consideramos significativo con una sola semilla. Sí se observa su
+efecto regularizador: sin augmentation, EfficientNet-B0 termina con una pérdida de
+entrenamiento de 0,003 frente a 0,016 en validación (memoriza el conjunto de entrenamiento),
+mientras que con augmentation la pérdida de entrenamiento (0,038) queda por encima de la de
+validación (0,019). Como el test proviene de la misma distribución que el entrenamiento, es
+esperable que el beneficio del augmentation aparezca recién ante condiciones de captura
+distintas (Secciones~\ref{subsec:res_robustez} y~\ref{subsec:res_externos}). Por último, en
+las cuatro corridas el macro-F1 de validación todavía crecía en la última época, por lo que
+un entrenamiento más largo podría mejorar levemente estos valores.
+
+\begin{table}[t]
+\centering
+\caption{Fine-tuning parcial a $160\times160$ (8 épocas, CPU)}
+\label{tab:finetuning}
+\setlength{\tabcolsep}{3.5pt}
+\begin{tabular}{@{}lcccccc@{}}
+\toprule
+\textbf{Modelo} & \textbf{Aug.} & \textbf{Parám.} & \textbf{F1 val} & \textbf{F1 test} & \textbf{Errores} & \textbf{Tiempo} \\
+ & & entren. (M) & & & test & (min) \\
+\midrule
+MobileNetV3-S   & no & 1,39 & 0,990          & 0,986          & 24          & 10,7 \\
+MobileNetV3-S   & sí & 1,39 & 0,987          & 0,986          & 30          & 10,6 \\
+EfficientNet-B0 & no & 3,17 & 0,995          & \textbf{0,994} & \textbf{11} & 33,8 \\
+EfficientNet-B0 & sí & 3,17 & \textbf{0,995} & 0,993          & 17          & 32,4 \\
+\bottomrule
+\end{tabular}
+\end{table}
 
 \subsection{Análisis por clase y de errores}
 \label{subsec:res_errores}
+Con el modelo seleccionado (EfficientNet-B0 con augmentation, el de mayor macro-F1 en
+validación), todas las clases superan un F1 de 0,975. Las más bajas son tizón temprano del
+tomate (0,975) y papa sana (0,976). Esta última es la clase con menor F1 en tres de las
+cuatro corridas, lo que es coherente con que sea la clase minoritaria (21 imágenes de test).
+De los 17 errores, 16 ocurren entre enfermedades de una misma especie y solo uno confunde una
+hoja sana con una enferma. Las confusiones más frecuentes se dan entre enfermedades del
+tomate con síntomas visualmente parecidos: tizón temprano contra tizón tardío, y mancha diana
+contra ácaro araña o moho foliar. Estos mismos pares ya aparecían como los principales
+errores del linear probe, lo que sugiere una ambigüedad propia de los síntomas más que una
+limitación de un modelo en particular.
 
 \subsection{Explicabilidad (Grad-CAM)}
 \label{subsec:res_gradcam}
+% Nota: Grad-CAM se calculó sobre un reentrenamiento de EfficientNet-B0 con augmentation
+% (branch gradcam). Actualizar al unificar los resultados en main.
+El análisis de Grad-CAM se realizó sobre un reentrenamiento del mismo modelo (macro-F1 en
+test de 0,994; 13 errores). En el conjunto de test completo, el 67,8\,\% de la activación
+recae sobre la hoja, que ocupa en promedio el 40,2\,\% de la imagen: la atención está
+1,77 veces más concentrada en la hoja de lo que se esperaría por azar. Además, el máximo de
+activación cae dentro de la hoja en el 97,0\,\% de las imágenes (Fig.~\ref{fig:energia_hoja}).
+Los aciertos de la Fig.~\ref{fig:gradcam_ejemplos} muestran que el modelo se enfoca en las
+lesiones necróticas y en las zonas cloróticas.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\columnwidth]{gradcam_energia_hoja.pdf}
+\caption{Distribución de $E_{\text{hoja}}$ (fracción de la activación Grad-CAM sobre la hoja)
+en las 2\,949 imágenes de test. Los triángulos marcan los 13 errores; la línea punteada, el
+área media que ocupa la hoja.}
+\label{fig:energia_hoja}
+\end{figure}
+
+Los errores no se explican por una atención desviada hacia el fondo: su $E_{\text{hoja}}$
+medio (0,63) y su \emph{pointing game} (92\,\%) son apenas menores que los de los aciertos
+(0,68 y 97\,\%). Es decir, el modelo mira la hoja pero interpreta mal síntomas ambiguos. La
+excepción es una hoja de TYLCV de tamaño muy reducido, en la que la activación se extiende
+sobre el fondo (Fig.~\ref{fig:gradcam_ejemplos}, cuarta columna). Las clases con menor
+$E_{\text{hoja}}$ son el virus del mosaico (0,54) y el tizón tardío del tomate (0,55), cuyas
+hojas suelen estar enrolladas o deformadas. Parte de la activación fuera de la hoja se debe a
+la baja resolución del mapa ($5\times5$), que al interpolarse se extiende sobre los bordes.
+Aun así, que cerca de un tercio de la activación caiga fuera de la hoja indica que el fondo
+no es completamente irrelevante para el modelo, en línea con el sesgo descrito
+en~\cite{noyan2022uncovering}.
 
 \subsection{Robustez ante perturbaciones}
 \label{subsec:res_robustez}
@@ -21,3 +138,26 @@
 
 \subsection{Costo computacional}
 \label{subsec:res_costo}
+La Tabla~\ref{tab:costo} compara el costo de inferencia de los dos modelos ajustados en una
+CPU de notebook (Intel Core i7-1355U), con entrada de $160\times160$. Ambos permiten
+clasificar en tiempo real sin GPU: EfficientNet-B0 procesa una imagen en 18\,ms y
+MobileNetV3-Small en 7,7\,ms, con un modelo 2,6 veces más liviano (5,9\,MB). Si se prioriza
+el desempeño, EfficientNet-B0 es la mejor opción para el prototipo. MobileNetV3-Small, que
+comete el doble de errores pero es 2,3 veces más rápido, resulta una alternativa adecuada
+para dispositivos más limitados, como un teléfono de gama baja.
+
+\begin{table}[t]
+\centering
+\caption{Costo de inferencia en CPU ($160\times160$, fp32)}
+\label{tab:costo}
+\setlength{\tabcolsep}{3pt}
+\begin{tabular}{@{}lcccc@{}}
+\toprule
+\textbf{Modelo} & \textbf{Parám.} & \textbf{Tamaño} & \textbf{Latencia bs=1} & \textbf{Throughput} \\
+ & (M) & (MB) & media (p95) [ms] & bs=32 [img/s] \\
+\midrule
+MobileNetV3-Small & 1,53 & 5,9  & 7,7 (9,1)   & 920 \\
+EfficientNet-B0   & 4,03 & 15,5 & 18,0 (25,8) & 152 \\
+\bottomrule
+\end{tabular}
+\end{table}

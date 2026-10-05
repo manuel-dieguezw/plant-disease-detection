@@ -13,18 +13,18 @@
       "dispositivo": "cpu",
       "params (M)": 1.533,
       "tamaño fp32 (MB)": 5.895,
-      "latencia bs=1 media (ms)": 7.018,
-      "latencia bs=1 p95 (ms)": 9.4,
-      "throughput bs=32 (img/s)": 797.303
+      "latencia bs=1 media (ms)": 6.964,
+      "latencia bs=1 p95 (ms)": 9.162,
+      "throughput bs=32 (img/s)": 938.747
     },
     {
       "modelo": "efficientnet_b0",
       "dispositivo": "cpu",
       "params (M)": 4.027,
       "tamaño fp32 (MB)": 15.522,
-      "latencia bs=1 media (ms)": 17.634,
-      "latencia bs=1 p95 (ms)": 21.047,
-      "throughput bs=32 (img/s)": 149.59
+      "latencia bs=1 media (ms)": 17.491,
+      "latencia bs=1 p95 (ms)": 21.47,
+      "throughput bs=32 (img/s)": 151.608
     }
   ]
 }
