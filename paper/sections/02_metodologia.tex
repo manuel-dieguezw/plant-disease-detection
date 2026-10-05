@@ -7,10 +7,19 @@ Utilizamos el subconjunto de PlantVillage~\cite{hughes2015plantvillage} correspo
 pimiento, papa y tomate: 20\,638 imágenes RGB de $256\times256$ píxeles distribuidas en 15
 clases (12 enfermedades y 3 clases de hoja sana). Las imágenes fueron tomadas en condiciones
 de laboratorio, con una única hoja centrada sobre un fondo uniforme. El dataset está
-desbalanceado: la clase mayoritaria (virus del rizado amarillo del tomate, TYLCV) tiene
-3\,208 imágenes y la minoritaria (papa sana) 152, una relación de 21:1. Las hojas sanas
-representan el 15,6\,\% del total. Por este desbalance adoptamos el macro-F1 como métrica
-principal.
+desbalanceado (Fig.~\ref{fig:datos}a): la clase mayoritaria (virus del rizado amarillo del
+tomate, TYLCV) tiene 3\,208 imágenes y la minoritaria (papa sana) 152, una relación de 21:1.
+Las hojas sanas representan el 15,6\,\% del total. Por este desbalance adoptamos el macro-F1
+como métrica principal.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\columnwidth]{metodologia_datos.pdf}
+\caption{(a) Cantidad de imágenes por clase en el subconjunto de PlantVillage utilizado.
+(b) Una hoja de entrenamiento (tizón temprano del tomate) y siete muestras generadas por el
+pipeline de data augmentation usado en el fine-tuning ($160\times160$).}
+\label{fig:datos}
+\end{figure}
 
 \subsection{Partición de datos y control de fuga}
 \label{subsec:split}
@@ -34,7 +43,8 @@ preentrenar los backbones. Validación y test usan siempre un preprocesamiento d
 (solo redimensionado). El data augmentation se aplica únicamente en entrenamiento y combina
 recortes aleatorios (escala 0,6 - 1,0), volteos horizontales y verticales, rotaciones de hasta
 $\pm30^\circ$ ($p=0{,}5$), variaciones moderadas de color (brillo y contraste $\pm30$\,\%,
-saturación $\pm20$\,\%, tono $\pm0{,}03$) y desenfoque gaussiano ($p=0{,}2$). Las hojas no
+saturación $\pm20$\,\%, tono $\pm0{,}03$) y desenfoque gaussiano ($p=0{,}2$)
+(Fig.~\ref{fig:datos}b). Las hojas no
 tienen una orientación canónica, por lo que las transformaciones geométricas son válidas. En
 cambio, las variaciones de color se limitaron porque el color es en sí mismo una señal
 diagnóstica (clorosis, necrosis).

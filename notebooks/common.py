@@ -25,6 +25,41 @@ IMAGENET_MEAN = [0.485, 0.456, 0.406]
 IMAGENET_STD = [0.229, 0.224, 0.225]
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
+# ---------------------------------------------------------------------------
+# Figuras del paper (formato IEEE)
+# ---------------------------------------------------------------------------
+FIG_DIR = ROOT / "paper" / "figures"
+COL_W, PAGE_W = 3.5, 7.16  # ancho de columna y de página IEEE (pulgadas)
+PAPER_RC = {"font.family": "serif", "font.size": 7, "axes.titlesize": 7, "axes.labelsize": 7,
+            "xtick.labelsize": 6, "ytick.labelsize": 6, "legend.fontsize": 6,
+            "axes.grid": False, "axes.edgecolor": "0.3", "axes.linewidth": 0.6}
+
+# Nombres de las clases en español (especie: condición), para figuras
+CLASS_NAMES_ES = {
+    "Pepper__bell___Bacterial_spot": "Pimiento: mancha bacteriana",
+    "Pepper__bell___healthy": "Pimiento: sana",
+    "Potato___Early_blight": "Papa: tizón temprano",
+    "Potato___Late_blight": "Papa: tizón tardío",
+    "Potato___healthy": "Papa: sana",
+    "Tomato_Bacterial_spot": "Tomate: mancha bacteriana",
+    "Tomato_Early_blight": "Tomate: tizón temprano",
+    "Tomato_Late_blight": "Tomate: tizón tardío",
+    "Tomato_Leaf_Mold": "Tomate: moho foliar",
+    "Tomato_Septoria_leaf_spot": "Tomate: septoriosis",
+    "Tomato_Spider_mites_Two_spotted_spider_mite": "Tomate: ácaro araña",
+    "Tomato__Target_Spot": "Tomate: mancha diana",
+    "Tomato__Tomato_YellowLeaf__Curl_Virus": "Tomate: TYLCV",
+    "Tomato__Tomato_mosaic_virus": "Tomate: virus del mosaico",
+    "Tomato_healthy": "Tomate: sana",
+}
+
+
+def save_paper_fig(fig, name):
+    """Guarda la figura en paper/figures/<name>.pdf."""
+    FIG_DIR.mkdir(parents=True, exist_ok=True)
+    fig.savefig(FIG_DIR / f"{name}.pdf", bbox_inches="tight", dpi=300)
+    print(f"Figura exportada: paper/figures/{name}.pdf")
+
 eval_tf = v2.Compose([
     v2.Resize(IMG_SIZE), v2.CenterCrop(IMG_SIZE),
     v2.ToImage(), v2.ToDtype(torch.float32, scale=True),
