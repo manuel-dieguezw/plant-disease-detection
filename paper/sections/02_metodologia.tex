@@ -1,0 +1,123 @@
+\section{Metodología, diseño y desarrollo}
+\label{sec:metodologia}
+
+\subsection{Dataset}
+\label{subsec:dataset}
+Utilizamos el subconjunto de PlantVillage~\cite{hughes2015plantvillage} correspondiente a
+pimiento, papa y tomate: 20\,638 imágenes RGB de $256\times256$ píxeles distribuidas en 15
+clases (12 enfermedades y 3 clases de hoja sana). Las imágenes fueron tomadas en condiciones
+de laboratorio, con una única hoja centrada sobre un fondo uniforme. El dataset está
+desbalanceado: la clase mayoritaria (virus del rizado amarillo del tomate, TYLCV) tiene
+3\,208 imágenes y la minoritaria (papa sana) 152, una relación de 21:1. Las hojas sanas
+representan el 15,6\,\% del total. Por este desbalance adoptamos el macro-F1 como métrica
+principal.
+
+\subsection{Partición de datos y control de fuga}
+\label{subsec:split}
+PlantVillage incluye varias fotografías de una misma hoja, por lo que una partición aleatoria
+puede ubicar imágenes casi idénticas en entrenamiento y en test e inflar las métricas. Para
+detectarlas calculamos un hash criptográfico (MD5) de cada archivo y un hash perceptual
+(dHash de 64 bits). Encontramos 28 imágenes en 14 grupos de duplicados, todos con etiquetas
+consistentes. Luego realizamos una partición estratificada por clase y \emph{agrupada} por
+dHash (\texttt{StratifiedGroupKFold}, semilla fija), de modo que las imágenes de un mismo
+grupo caen siempre en el mismo subconjunto. El resultado es una partición
+71,4/14,3/14,3\,\% (14\,740 imágenes de entrenamiento, 2\,949 de validación y 2\,949 de
+test), sin grupos compartidos entre subconjuntos. Esta partición se versiona en el
+repositorio y es la misma para todos los experimentos. Como el dHash no es invariante a
+rotaciones, este control no elimina la fuga entre fotografías rotadas de una misma hoja; lo
+consideramos una limitación del estudio.
+
+\subsection{Preprocesamiento y data augmentation}
+\label{subsec:augmentation}
+Las imágenes se normalizan con la media y el desvío de ImageNet, que son los usados para
+preentrenar los backbones. Validación y test usan siempre un preprocesamiento determinístico
+(solo redimensionado). El data augmentation se aplica únicamente en entrenamiento y combina
+recortes aleatorios (escala 0,6 - 1,0), volteos horizontales y verticales, rotaciones de hasta
+$\pm30^\circ$ ($p=0{,}5$), variaciones moderadas de color (brillo y contraste $\pm30$\,\%,
+saturación $\pm20$\,\%, tono $\pm0{,}03$) y desenfoque gaussiano ($p=0{,}2$). Las hojas no
+tienen una orientación canónica, por lo que las transformaciones geométricas son válidas. En
+cambio, las variaciones de color se limitaron porque el color es en sí mismo una señal
+diagnóstica (clorosis, necrosis).
+
+\subsection{Arquitecturas y estrategia de transferencia}
+\label{subsec:arquitecturas}
+Elegimos backbones preentrenados en ImageNet con distintos compromisos entre costo y
+capacidad: MobileNetV3-Small y MobileNetV3-Large~\cite{howard2019searching},
+EfficientNet-B0~\cite{tan2019efficientnet} y, como referencia sin optimización para
+dispositivos móviles, ResNet18. Como el entrenamiento se realizó íntegramente en CPU, seguimos
+una estrategia en dos etapas:
+\begin{enumerate}
+  \item \textbf{Linear probe}: con el backbone congelado, extraemos una única vez los
+        embeddings de todas las imágenes a $224\times224$ y entrenamos sobre ellos una capa
+        lineal. Esta etapa, de pocos segundos por modelo, mide la calidad de las
+        representaciones de ImageNet para este dominio y permite comparar las cuatro
+        arquitecturas a bajo costo. También evaluamos una entropía cruzada ponderada por la
+        frecuencia inversa de cada clase.
+  \item \textbf{Fine-tuning parcial}: para las dos arquitecturas con mayor macro-F1 en
+        validación en la etapa anterior (EfficientNet-B0 y MobileNetV3-Small, esta última
+        además la de menor costo), reemplazamos el clasificador y
+        reentrenamos las últimas etapas del backbone (6 bloques en MobileNetV3-Small y 3 en
+        EfficientNet-B0, con 1,39\,M y 3,17\,M parámetros entrenables, respectivamente). Las
+        BatchNorm de las etapas congeladas se mantienen en modo evaluación para no alterar sus
+        estadísticas. Cada arquitectura se entrena con y sin data augmentation, en un diseño
+        $2\times2$ en el que todo lo demás (semilla, partición, resolución, optimizador y
+        número de épocas) permanece fijo.
+\end{enumerate}
+
+\subsection{Protocolo de entrenamiento y métricas}
+\label{subsec:entrenamiento}
+La Tabla~\ref{tab:config} resume los hiperparámetros de ambas etapas. Para reducir el costo
+en CPU, el fine-tuning se realiza a $160\times160$ píxeles. En las dos etapas, la mejor época
+se elige por macro-F1 en validación, y el conjunto de test se evalúa una única vez con el
+modelo seleccionado. Reportamos accuracy, balanced accuracy y macro-F1, además del F1 por
+clase y la matriz de confusión para el análisis de errores. Como métricas de costo
+registramos el tiempo de entrenamiento, el número de parámetros y la latencia de inferencia
+en CPU.
+
+\begin{table}[t]
+\centering
+\caption{Configuración de entrenamiento}
+\label{tab:config}
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{@{}lcc@{}}
+\toprule
+ & \textbf{Linear probe} & \textbf{Fine-tuning} \\
+\midrule
+Resolución de entrada      & $224\times224$          & $160\times160$ \\
+Capas entrenadas           & capa lineal             & últimas etapas + cabeza \\
+Optimizador                & AdamW                   & AdamW \\
+Learning rate\textsuperscript{a} & $3\times10^{-3}$  & $10^{-3}$ / $3\times10^{-4}$ \\
+Weight decay               & $10^{-3}$               & $10^{-4}$ \\
+Scheduler                  & coseno                  & coseno \\
+Batch / épocas             & 256 / 60                & 32 / 8 \\
+Pérdida                    & CE y CE ponderada       & CE \\
+Selección del modelo       & \multicolumn{2}{c}{máximo macro-F1 en validación} \\
+\bottomrule
+\multicolumn{3}{@{}l}{\footnotesize \textsuperscript{a}En fine-tuning: cabeza / backbone.}
+\end{tabular}
+\end{table}
+
+\subsection{Explicabilidad con Grad-CAM}
+\label{subsec:gradcam}
+Para auditar en qué regiones de la imagen se basa el mejor modelo aplicamos
+Grad-CAM~\cite{selvaraju2017gradcam} sobre la última capa convolucional del backbone (un mapa
+de $5\times5$ a la resolución de entrada), calculado para la clase predicha. Además del
+análisis visual, cuantificamos la atención del modelo sobre todo el conjunto de test. Para
+cada imagen segmentamos la hoja con un umbral de Otsu sobre el canal de saturación (el fondo
+de laboratorio es poco saturado), seguido de limpieza morfológica. Con la máscara $M$
+resultante y el mapa Grad-CAM normalizado $L$ calculamos la fracción de la activación que recae 
+sobre la hoja:
+\begin{equation}
+  E_{\text{hoja}} = \frac{\sum_{i,j} L_{ij}\,M_{ij}}{\sum_{i,j} L_{ij}},
+\end{equation}
+Como un mapa uniforme obtendría un valor igual al área relativa de la hoja, también reportamos 
+el cociente entre $E_{\text{hoja}}$ y esa área (mayor que 1 si la atención se concentra en la 
+hoja más de lo esperable por azar). Por último, aplicamos el \emph{pointing game}, que mide 
+el porcentaje de imágenes cuyo máximo de activación cae dentro de la hoja. Estas métricas 
+permiten detectar si el modelo explota el fondo, un sesgo conocido de PlantVillage~\cite{noyan2022uncovering}, 
+en lugar de los síntomas.
+
+\subsection{Evaluación de robustez y con datos externos}
+\label{subsec:robustez_metodo}
+\pendiente{Perturbaciones aplicadas al test (tipos y niveles), dataset externo utilizado,
+mapeo de clases y protocolo de evaluación.}

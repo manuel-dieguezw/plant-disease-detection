@@ -1,0 +1,57 @@
+\section{Introducción}
+\label{sec:introduccion}
+
+Las plagas y enfermedades de los cultivos son una de las principales amenazas para la
+seguridad alimentaria. Una evaluación global sobre cinco cultivos básicos estimó que las
+pérdidas de rendimiento atribuibles a patógenos y plagas alcanzan, en el caso de la papa,
+un 17,2\,\% en promedio (8,1--21,0\,\% según la región), y que las pérdidas más altas se
+concentran en regiones con déficit de alimentos~\cite{savary2019burden}. El manejo de estas
+enfermedades depende de un diagnóstico temprano, que todavía se apoya mayormente en la
+inspección visual realizada por especialistas: un recurso escaso y costoso, sobre todo para
+productores pequeños y alejados de los centros técnicos.
+
+El aprendizaje profundo y la masificación de los teléfonos inteligentes abrieron la
+posibilidad de automatizar ese diagnóstico a partir de una fotografía de la hoja. El dataset
+PlantVillage~\cite{hughes2015plantvillage} fue el punto de partida de esta línea: sobre
+54\,306 imágenes de 14 especies, una red convolucional alcanzó un 99,35\,\% de accuracy en
+un conjunto de test separado~\cite{mohanty2016using}. Sin embargo, el mismo trabajo reportó
+que el accuracy caía al 31,4\,\% sobre imágenes obtenidas de otras fuentes. Estudios
+posteriores mostraron que PlantVillage contiene sesgos de captura que un modelo puede
+explotar (por ejemplo, un clasificador entrenado con solo 8 píxeles del fondo alcanza un
+49\,\% de accuracy~\cite{noyan2022uncovering}) y propusieron conjuntos de imágenes tomadas
+en condiciones reales, como PlantDoc~\cite{singh2020plantdoc}. En consecuencia, un
+accuracy cercano al 100\,\% en PlantVillage no garantiza por sí solo un modelo útil en el
+campo, y su evaluación debe complementarse con controles de fuga de datos, explicabilidad y
+pruebas fuera de la distribución de entrenamiento.
+
+% --- Caso real de aplicación (<= 7 años). Propuesta: PlantVillage Nuru. ---------------
+Un caso real que ilustra tanto el potencial como esta brecha es PlantVillage Nuru, una
+aplicación móvil que ejecuta sin conexión un modelo de detección de síntomas foliares en
+mandioca~\cite{ramcharan2019mobile}. En una evaluación de campo en Tanzania, Nuru alcanzó un
+65\,\% de accuracy en el diagnóstico de enfermedades virales, por encima de los extensionistas
+agrícolas (40--58\,\%) y de los productores (18--31\,\%), y llegó al 74--88\,\% cuando el
+diagnóstico combinaba seis hojas por planta~\cite{mrisho2020accuracy}. Estos resultados
+muestran que un modelo liviano ejecutado en el teléfono puede aportar valor real, pero
+también que el desempeño en el campo es muy inferior al que se obtiene en el laboratorio.
+
+En este trabajo desarrollamos un prototipo de clasificación de enfermedades foliares en
+tres cultivos de importancia hortícola (pimiento, papa y tomate), con 15 clases que incluyen
+hojas sanas y enfermas de PlantVillage. Partimos de modelos preentrenados en ImageNet y
+priorizamos arquitecturas livianas (MobileNetV3~\cite{howard2019searching} y
+EfficientNet-B0~\cite{tan2019efficientnet}), compatibles con una inferencia en CPU o en
+dispositivos móviles. Las contribuciones principales son:
+\begin{itemize}
+  \item un protocolo de partición estratificada y agrupada por imágenes casi duplicadas, que
+        reduce la fuga de datos entre entrenamiento y test;
+  \item una comparación sistemática entre \emph{linear probe} y \emph{fine-tuning} parcial de
+        distintos backbones, con y sin data augmentation;
+  \item un análisis cuantitativo de explicabilidad con Grad-CAM~\cite{selvaraju2017gradcam},
+        que mide qué fracción de la atención del modelo recae sobre la hoja y no sobre el fondo;
+  \item una evaluación de robustez ante perturbaciones de la imagen y sobre datos externos a
+        PlantVillage, junto con la medición del costo de inferencia en CPU.
+\end{itemize}
+
+El resto del trabajo se organiza de la siguiente manera: la Sección~\ref{sec:metodologia}
+describe los datos, la partición, las arquitecturas y el protocolo experimental; la
+Sección~\ref{sec:resultados} presenta y analiza los resultados; y la
+Sección~\ref{sec:conclusiones} resume las conclusiones y las líneas de trabajo futuro.
