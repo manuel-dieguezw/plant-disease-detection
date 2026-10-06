@@ -1,0 +1,30 @@
+{
+  "modelo": "effb0_aug",
+  "img_size": 160,
+  "n_test": 2949,
+  "errores_test": 13,
+  "energia_hoja_media": 0.6779026028871658,
+  "area_hoja_media": 0.40188555707443196,
+  "energia_sobre_area_media": 1.7715724210718868,
+  "pointing_game": 0.9701593760596813,
+  "latencia": [
+    {
+      "modelo": "mobilenet_v3_small",
+      "dispositivo": "cpu",
+      "params (M)": 1.533,
+      "tamaño fp32 (MB)": 5.895,
+      "latencia bs=1 media (ms)": 6.964,
+      "latencia bs=1 p95 (ms)": 9.162,
+      "throughput bs=32 (img/s)": 938.747
+    },
+    {
+      "modelo": "efficientnet_b0",
+      "dispositivo": "cpu",
+      "params (M)": 4.027,
+      "tamaño fp32 (MB)": 15.522,
+      "latencia bs=1 media (ms)": 17.491,
+      "latencia bs=1 p95 (ms)": 21.47,
+      "throughput bs=32 (img/s)": 151.608
+    }
+  ]
+}

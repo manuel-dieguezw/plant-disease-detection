@@ -1,0 +1,81 @@
+% =============================================================================
+% Paper IEEE (conference) - Visión por Computadora II - CEIA - FIUBA
+% Compilar desde esta carpeta:  latexmk -pdf main.tex
+% (o con la receta "latexmk" de LaTeX Workshop en VS Code)
+% =============================================================================
+\documentclass[conference,a4paper]{IEEEtran}
+\IEEEoverridecommandlockouts
+
+% --- Idioma y codificación ---------------------------------------------------
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[spanish,es-tabla,es-nodecimaldot]{babel}
+
+% --- Paquetes -----------------------------------------------------------------
+\usepackage{cite}
+\usepackage{amsmath,amssymb,amsfonts}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{multirow}
+\usepackage{siunitx}
+\usepackage{xcolor}
+\usepackage{url}
+
+\graphicspath{{figures/}}
+\sisetup{output-decimal-marker={,}}
+
+% Nombres en español para elementos propios de IEEEtran
+\renewcommand{\IEEEkeywordsname}{Palabras clave}
+
+% Marcador visible para contenido pendiente (borrar antes de entregar)
+\newcommand{\pendiente}[1]{\textcolor{red}{\textbf{[PENDIENTE:} #1\textbf{]}}}
+
+% Salto de línea entre bloques de autores (grilla 2x2 en lugar de 4 columnas)
+\makeatletter
+\newcommand{\linebreakand}{%
+  \end{@IEEEauthorhalign}\hfill\mbox{}\par\mbox{}\hfill\begin{@IEEEauthorhalign}}
+\makeatother
+
+\begin{document}
+
+\title{Clasificación de enfermedades en hojas de plantas mediante transfer learning:
+comparación de arquitecturas livianas y explicabilidad con Grad-CAM}
+
+\author{
+\IEEEauthorblockN{BETTIG, Santiago Federico}
+\IEEEauthorblockA{\textit{CEIA - FIUBA} \\
+\textit{Universidad de Buenos Aires}\\
+Buenos Aires, Argentina \\
+santiagofbettig@gmail.com}
+\and
+\IEEEauthorblockN{DIEGUEZ, Manuel}
+\IEEEauthorblockA{\textit{CEIA - FIUBA} \\
+\textit{Universidad de Buenos Aires}\\
+Buenos Aires, Argentina \\
+manueldieguezw@gmail.com}
+\linebreakand
+\IEEEauthorblockN{RUBIOLO, Pedro Ignacio}
+\IEEEauthorblockA{\textit{CEIA - FIUBA} \\
+\textit{Universidad de Buenos Aires}\\
+Buenos Aires, Argentina \\
+rubiolopedroignacio@gmail.com}
+\and
+\IEEEauthorblockN{TOLOTTO, Lourdes}
+\IEEEauthorblockA{\textit{CEIA - FIUBA} \\
+\textit{Universidad de Buenos Aires}\\
+Buenos Aires, Argentina \\
+tolottolourdes2309@gmail.com}
+}
+
+\maketitle
+
+\input{sections/00_resumen}
+\input{sections/01_introduccion}
+\input{sections/02_metodologia}
+\input{sections/03_resultados}
+\input{sections/04_conclusiones}
+
+\bibliographystyle{IEEEtran}
+\bibliography{references}
+
+\end{document}
