@@ -14,7 +14,20 @@ from torchvision import models
 from torchvision.transforms import v2
 
 ROOT = Path(__file__).resolve().parent.parent
-DATA_DIR = Path(os.environ.get("PV_DATA_DIR", ROOT / "PlantVillage"))
+
+
+def _find_data_dir():
+    """Carpeta de PlantVillage: PV_DATA_DIR si está definida; si no, la primera ubicación
+    conocida que exista (PlantVillage/ en la raíz, o data/PlantVillage/ como la deja kagglehub)."""
+    if "PV_DATA_DIR" in os.environ:
+        return Path(os.environ["PV_DATA_DIR"])
+    candidates = [ROOT / "PlantVillage",
+                  ROOT / "data" / "PlantVillage" / "PlantVillage",
+                  ROOT / "data" / "PlantVillage"]
+    return next((p for p in candidates if p.exists()), candidates[0])
+
+
+DATA_DIR = _find_data_dir()
 SPLITS_DIR = ROOT / "splits"
 CACHE_DIR = ROOT / "cache"
 CACHE_DIR.mkdir(exist_ok=True)

@@ -12,6 +12,7 @@ pillow>=12.0
 matplotlib>=3.11
 seaborn>=0.13
 tqdm>=4.70
+requests>=2.32          # descarga de imágenes externas de PlantDoc (notebook 04)
 
 ipykernel>=7.0
 nbformat>=5.10
