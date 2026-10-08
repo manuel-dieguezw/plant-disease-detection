@@ -109,7 +109,7 @@ Selección del modelo       & \multicolumn{2}{c}{máximo macro-F1 en validación
 
 \subsection{Explicabilidad con Grad-CAM}
 \label{subsec:gradcam}
-Para auditar en qué regiones de la imagen se basa el mejor modelo aplicamos
+Para auditar en qué regiones de la imagen se basa el modelo final aplicamos
 Grad-CAM~\cite{selvaraju2017gradcam} sobre la última capa convolucional del backbone (un mapa
 de $5\times5$ a la resolución de entrada), calculado para la clase predicha. Además del
 análisis visual, cuantificamos la atención del modelo sobre todo el conjunto de test. Para
@@ -132,5 +132,15 @@ en lugar de los síntomas.
 
 \subsection{Evaluación de robustez y con datos externos}
 \label{subsec:robustez_metodo}
-\pendiente{Perturbaciones aplicadas al test (tipos y niveles), dataset externo utilizado,
-mapeo de clases y protocolo de evaluación.}
+Para estimar el comportamiento fuera de las condiciones de captura de PlantVillage realizamos
+dos evaluaciones complementarias, que no se usan para seleccionar ningún modelo. Primero,
+aplicamos al conjunto de test cinco perturbaciones fijadas de antemano: oscurecimiento y
+aclarado (factor de brillo 0,65 y 1,35), rotación de $25^\circ$ seguida de un recorte central,
+acercamiento del 20\,\% (recorte central) y desenfoque gaussiano (núcleo de $5\times5$,
+$\sigma=1{,}5$). Segundo, evaluamos sobre imágenes de PlantDoc~\cite{singh2020plantdoc},
+tomadas en condiciones reales (fondos complejos, varias hojas por imagen, iluminación
+natural). Elegimos las seis clases de PlantDoc con un equivalente directo en nuestro conjunto
+(tizón temprano y tardío de la papa; mancha bacteriana, tizón temprano, tizón tardío y
+septoriosis del tomate) y tomamos al azar cinco imágenes de cada una de su partición de test
+(30 imágenes). Los modelos conservan sus 15 salidas, por lo que predecir cualquier otra clase
+cuenta como error.
