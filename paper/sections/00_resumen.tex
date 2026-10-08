@@ -1,5 +1,20 @@
 \begin{abstract}
-\pendiente{Resumen (150--250 palabras). Se redacta al final, cuando estén todos los resultados.}
+El diagnóstico temprano de enfermedades en los cultivos depende de la inspección visual de
+especialistas, un recurso escaso para muchos productores. En este trabajo desarrollamos un
+prototipo de clasificación de 15 clases de hojas sanas y enfermas de pimiento, papa y tomate
+del dataset PlantVillage, basado en arquitecturas livianas preentrenadas en ImageNet y
+entrenado íntegramente en CPU. Para evitar la fuga de datos, particionamos el dataset de forma
+estratificada y agrupada por imágenes casi duplicadas. Comparamos cuatro backbones mediante
+linear probe y aplicamos fine-tuning parcial a MobileNetV3-Small y EfficientNet-B0, con y sin
+data augmentation. EfficientNet-B0 con augmentation alcanza un macro-F1 de 0,993 en test, con
+una latencia de 17,5\,ms por imagen en CPU. El augmentation no modifica el desempeño en el test
+original, pero es decisivo ante perturbaciones: con desenfoque, el macro-F1 cae 0,23 sin
+augmentation y solo 0,013 con él. Un análisis cuantitativo con Grad-CAM muestra que el 65,7\,\%
+de la activación recae sobre la hoja, que ocupa el 40,2\,\% de la imagen, y que los errores se
+deben a síntomas ambiguos más que a una atención desviada hacia el fondo. Sin embargo, sobre
+imágenes de campo del dataset PlantDoc el accuracy cae al 36,7\,\%. Estos resultados indican
+que un desempeño cercano al 100\,\% en PlantVillage no garantiza la utilidad del modelo en
+condiciones reales.
 \end{abstract}
 
 \begin{IEEEkeywords}

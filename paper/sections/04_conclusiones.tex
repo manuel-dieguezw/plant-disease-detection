@@ -1,2 +1,43 @@
 \section{Conclusiones}
 \label{sec:conclusiones}
+
+En este trabajo desarrollamos y evaluamos un prototipo de clasificación de enfermedades
+foliares en pimiento, papa y tomate a partir de modelos livianos preentrenados en ImageNet,
+entrenados íntegramente en CPU. Las principales conclusiones son las siguientes:
+
+\begin{enumerate}
+  \item \textbf{El fine-tuning parcial es más determinante que la elección del backbone.} Las
+        representaciones de ImageNet ya alcanzan un macro-F1 de 0,96 con un linear probe,
+        con diferencias mínimas entre arquitecturas móviles. Reentrenar solo las últimas
+        etapas lleva el macro-F1 a 0,987--0,993 y reduce la fracción de error entre un 69 y un
+        81\,\%, con un costo de entrenamiento compatible con una CPU de notebook.
+  \item \textbf{Las arquitecturas móviles ofrecen el mejor compromiso.} Superan a ResNet18
+        con muchos menos parámetros y permiten inferencia en tiempo real sin GPU.
+        EfficientNet-B0 obtiene el mejor desempeño (17 errores en 2\,949 imágenes de test,
+        17,5\,ms por imagen), mientras que MobileNetV3-Small es 2,5 veces más rápido a cambio
+        de casi el doble de errores, lo que lo hace adecuado para dispositivos más limitados.
+  \item \textbf{El valor del data augmentation no se ve en el test de la misma distribución.}
+        Sin cambiar el macro-F1 en el test original, el augmentation reduce la caída ante
+        perturbaciones de hasta 0,23 a menos de 0,015. Elegir el modelo solo por su desempeño
+        en el test habría descartado la variante más robusta.
+  \item \textbf{El modelo se basa principalmente en la hoja, pero no ignora el fondo.} Según
+        Grad-CAM, el 65,7\,\% de la activación recae sobre la hoja (1,7 veces lo esperable por
+        azar) y los errores se deben a síntomas ambiguos entre enfermedades de una misma
+        especie más que a una atención desviada. Aun así, cerca de un tercio de la activación
+        cae fuera de la hoja, lo que deja abierta la posibilidad de que el modelo aproveche
+        regularidades del fondo de PlantVillage.
+  \item \textbf{Un desempeño cercano al 100\,\% en PlantVillage no garantiza utilidad en el
+        campo.} Sobre imágenes reales de PlantDoc, el accuracy cae al 36,7\,\% y el modelo
+        comete errores con alta confianza, incluso confundiendo la especie. El augmentation
+        con transformaciones geométricas y de color no alcanza para cubrir esa brecha de
+        dominio, por lo que el prototipo, en su estado actual, no debería usarse para
+        diagnosticar en condiciones reales.
+\end{enumerate}
+
+Entre las limitaciones del estudio se encuentran el uso de una única semilla, la muestra
+externa reducida (30 imágenes) y la fuga de datos que el agrupamiento por dHash no evita entre
+fotografías rotadas de una misma hoja. Como trabajo futuro proponemos incorporar imágenes de
+campo al entrenamiento o reemplazar el fondo de las hojas de PlantVillage, agregar un mecanismo
+de detección de imágenes fuera de distribución que permita al sistema abstenerse ante casos
+dudosos, repetir los experimentos con varias semillas y un conjunto externo más amplio, y
+evaluar el modelo cuantizado directamente en un teléfono móvil.
