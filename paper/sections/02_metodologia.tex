@@ -5,7 +5,7 @@
 \label{subsec:dataset}
 Utilizamos el subconjunto de PlantVillage~\cite{hughes2015plantvillage} correspondiente a
 pimiento, papa y tomate: 20\,638 imágenes RGB de $256\times256$ píxeles distribuidas en 15
-clases (12 enfermedades y 3 clases de hoja sana). Las imágenes fueron tomadas en condiciones
+clases (12 clases de afecciones y 3 de hoja sana). Las imágenes fueron tomadas en condiciones
 de laboratorio, con una única hoja centrada sobre un fondo uniforme. El dataset está
 desbalanceado (Fig.~\ref{fig:datos}a): la clase mayoritaria (virus del rizado amarillo del
 tomate, TYLCV) tiene 3\,208 imágenes y la minoritaria (papa sana) 152, una relación de 21:1.
@@ -28,7 +28,7 @@ puede ubicar imágenes casi idénticas en entrenamiento y en test e inflar las m
 detectarlas calculamos un hash criptográfico (MD5) de cada archivo y un hash perceptual
 (dHash de 64 bits). Encontramos 28 imágenes en 14 grupos de duplicados, todos con etiquetas
 consistentes. Luego realizamos una partición estratificada por clase y \emph{agrupada} por
-dHash (\texttt{StratifiedGroupKFold}, semilla fija), de modo que las imágenes de un mismo
+igualdad de dHash (\texttt{StratifiedGroupKFold}, semilla fija), de modo que las imágenes de un mismo
 grupo caen siempre en el mismo subconjunto. El resultado es una partición
 71,4/14,3/14,3\,\% (14\,740 imágenes de entrenamiento, 2\,949 de validación y 2\,949 de
 test), sin grupos compartidos entre subconjuntos. Esta partición se versiona en el
@@ -40,7 +40,7 @@ consideramos una limitación del estudio.
 \label{subsec:augmentation}
 Las imágenes se normalizan con la media y el desvío de ImageNet, que son los usados para
 preentrenar los backbones. Validación y test usan siempre un preprocesamiento determinístico
-(solo redimensionado). El data augmentation se aplica únicamente en entrenamiento y combina
+(redimensionado y recorte central en linear probe; solo redimensionado en fine-tuning). El data augmentation se aplica únicamente en entrenamiento y combina
 recortes aleatorios (escala 0,6 - 1,0), volteos horizontales y verticales, rotaciones de hasta
 $\pm30^\circ$ ($p=0{,}5$), variaciones moderadas de color (brillo y contraste $\pm30$\,\%,
 saturación $\pm20$\,\%, tono $\pm0{,}03$) y desenfoque gaussiano ($p=0{,}2$)
@@ -59,7 +59,7 @@ una estrategia en dos etapas:
 \begin{enumerate}
   \item \textbf{Linear probe}: con el backbone congelado, extraemos una única vez los
         embeddings de todas las imágenes a $224\times224$ y entrenamos sobre ellos una capa
-        lineal. Esta etapa, de pocos segundos por modelo, mide la calidad de las
+        lineal. El entrenamiento de la capa lineal, de pocos segundos por modelo, mide la calidad de las
         representaciones de ImageNet para este dominio y permite comparar las cuatro
         arquitecturas a bajo costo. También evaluamos una entropía cruzada ponderada por la
         frecuencia inversa de cada clase.
@@ -70,16 +70,14 @@ una estrategia en dos etapas:
         EfficientNet-B0, con 1,39\,M y 3,17\,M parámetros entrenables, respectivamente). Las
         BatchNorm de las etapas congeladas se mantienen en modo evaluación para no alterar sus
         estadísticas. Cada arquitectura se entrena con y sin data augmentation, en un diseño
-        $2\times2$ en el que todo lo demás (semilla, partición, resolución, optimizador y
-        número de épocas) permanece fijo.
+        $2\times2$ con la misma partición, resolución, optimizador y número de épocas.
 \end{enumerate}
 
 \subsection{Protocolo de entrenamiento y métricas}
 \label{subsec:entrenamiento}
 La Tabla~\ref{tab:config} resume los hiperparámetros de ambas etapas. Para reducir el costo
 en CPU, el fine-tuning se realiza a $160\times160$ píxeles. En las dos etapas, la mejor época
-se elige por macro-F1 en validación, y el conjunto de test se evalúa una única vez con el
-modelo seleccionado. Reportamos accuracy, balanced accuracy y macro-F1, además del F1 por
+se elige por macro-F1 en validación, y cada modelo seleccionado se evalúa en el test original. Reportamos accuracy, balanced accuracy y macro-F1, además del F1 por
 clase y la matriz de confusión para el análisis de errores. Como métricas de costo
 registramos el tiempo de entrenamiento, el número de parámetros y la latencia de inferencia
 en CPU.
@@ -101,7 +99,7 @@ Weight decay               & $10^{-3}$               & $10^{-4}$ \\
 Scheduler                  & coseno                  & coseno \\
 Batch / épocas             & 256 / 60                & 32 / 8 \\
 Pérdida                    & CE y CE ponderada       & CE \\
-Selección del modelo       & \multicolumn{2}{c}{máximo macro-F1 en validación} \\
+Selección de época         & \multicolumn{2}{c}{máximo macro-F1 en validación} \\
 \bottomrule
 \multicolumn{3}{@{}l}{\footnotesize \textsuperscript{a}En fine-tuning: cabeza / backbone.}
 \end{tabular}
@@ -116,24 +114,24 @@ análisis visual, cuantificamos la atención del modelo sobre todo el conjunto d
 cada imagen segmentamos la hoja aprovechando el fondo uniforme: estimamos el color del fondo
 en el borde de la imagen y aplicamos un umbral de Otsu sobre la distancia cromática a ese
 color en el plano $(a^*, b^*)$ de CIELAB, seguido de limpieza morfológica y relleno de
-huecos. Usar solo la cromaticidad evita que las sombras se confundan con la hoja y conserva
-las lesiones oscuras. Con la máscara $M$
-resultante y el mapa Grad-CAM normalizado $L$ calculamos la fracción de la activación que recae 
+huecos. Usar solo la cromaticidad busca evitar que las sombras se confundan con la hoja y conservar
+las lesiones oscuras. La máscara es heurística y no fue validada con anotaciones manuales. Con la máscara $M$
+resultante y el mapa Grad-CAM normalizado $L$ calculamos la fracción de la activación que recae
 sobre la hoja:
 \begin{equation}
   E_{\text{hoja}} = \frac{\sum_{i,j} L_{ij}\,M_{ij}}{\sum_{i,j} L_{ij}},
 \end{equation}
-Como un mapa uniforme obtendría un valor igual al área relativa de la hoja, también reportamos 
-el cociente entre $E_{\text{hoja}}$ y esa área (mayor que 1 si la atención se concentra en la 
-hoja más de lo esperable por azar). Por último, aplicamos el \emph{pointing game}, que mide 
-el porcentaje de imágenes cuyo máximo de activación cae dentro de la hoja. Estas métricas 
-permiten detectar si el modelo explota el fondo, un sesgo conocido de PlantVillage~\cite{noyan2022uncovering}, 
-en lugar de los síntomas.
+Como un mapa uniforme obtendría un valor igual al área relativa de la hoja, también reportamos
+el promedio de los cocientes por imagen entre $E_{\text{hoja}}$ y esa área (mayor que 1 si
+la activación se concentra en la hoja más que en un mapa uniforme). Por último, aplicamos el \emph{pointing game}, que mide
+el porcentaje de imágenes cuyo máximo de activación cae dentro de la hoja. Estas métricas
+describen la localización de la activación, pero no descartan que el modelo explote el fondo,
+un sesgo conocido de PlantVillage~\cite{noyan2022uncovering}.
 
 \subsection{Evaluación de robustez y con datos externos}
 \label{subsec:robustez_metodo}
 Para estimar el comportamiento fuera de las condiciones de captura de PlantVillage realizamos
-dos evaluaciones complementarias, que no se usan para seleccionar ningún modelo. Primero,
+dos evaluaciones complementarias. Primero,
 aplicamos al conjunto de test cinco perturbaciones fijadas de antemano: oscurecimiento y
 aclarado (factor de brillo 0,65 y 1,35), rotación de $25^\circ$ seguida de un recorte central,
 acercamiento del 20\,\% (recorte central) y desenfoque gaussiano (núcleo de $5\times5$,
@@ -143,4 +141,13 @@ natural). Elegimos las seis clases de PlantDoc con un equivalente directo en nue
 (tizón temprano y tardío de la papa; mancha bacteriana, tizón temprano, tizón tardío y
 septoriosis del tomate) y tomamos al azar cinco imágenes de cada una de su partición de test
 (30 imágenes). Los modelos conservan sus 15 salidas, por lo que predecir cualquier otra clase
-cuenta como error.
+cuenta como error. La comparación de robustez sobre el test influyó en la elección del
+modelo final y, por ello, se considera exploratoria. La evaluación con PlantDoc no se usó
+para seleccionar modelos.
+
+\subsection{Prototipo de inferencia}
+\label{subsec:prototipo}
+El prototipo carga el modelo final EfficientNet-B0 con augmentation y aplica el mismo
+preprocesamiento de evaluación a $160\times160$. Para una imagen nueva devuelve la clase
+predicha, su puntuación softmax y las tres clases con mayor puntuación. La demo muestra la
+imagen junto con esas predicciones y el tiempo de inferencia.
