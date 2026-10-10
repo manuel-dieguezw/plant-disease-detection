@@ -50,27 +50,28 @@ ResNet18          & 11,2 & 39,1  & 0,942          & 0,942          & 0,941 \\
 El fine-tuning parcial mejora de forma sustancial el linear probe
 (Tabla~\ref{tab:finetuning}). Con la mejor variante de cada arquitectura, el macro-F1 en test
 pasa de 0,959 a 0,987 en MobileNetV3-Small y de 0,961 a 0,993 en EfficientNet-B0, lo que
-equivale a reducir la fracción de error ($1-\text{macro-F1}$) un 69\,\% y un 81\,\%,
+equivale a reducir el complemento del macro-F1 ($1-\text{macro-F1}$) un 69\,\% y un 81\,\%,
 respectivamente. Adaptar las últimas etapas del backbone resulta, entonces, mucho más
-determinante que la elección de la arquitectura en la etapa de linear probe. EfficientNet-B0
+determinante que la elección de la arquitectura en la etapa de linear probe en este protocolo,
+aunque también cambian la resolución y el clasificador. EfficientNet-B0
 supera a MobileNetV3-Small en todas las métricas, con aproximadamente la mitad de errores,
-pero cada época de entrenamiento le demanda unas 3,3 veces más tiempo (${\approx}330$\,s
-contra ${\approx}100$\,s en nuestra CPU).
+pero las corridas demandan 55--72 minutos frente a 13--14 minutos en nuestra CPU.
 
-El data augmentation no mejoró el desempeño en el test de PlantVillage: las diferencias
+El data augmentation no produjo una mejora consistente en el test de PlantVillage: las diferencias
 entre las corridas con y sin augmentation son de a lo sumo 0,0024 en macro-F1 y van en
-sentidos opuestos según la arquitectura, un margen que no consideramos significativo con una
-sola semilla. Sí se observa su efecto regularizador: sin augmentation, EfficientNet-B0 termina
-con una pérdida de entrenamiento de 0,004 frente a 0,019 en validación (memoriza el conjunto de
-entrenamiento), mientras que con augmentation la pérdida de entrenamiento (0,033) queda por
-encima de la de validación (0,019). En la misma línea, las corridas sin augmentation alcanzan
+sentidos opuestos según la arquitectura, un margen cuya reproducibilidad no podemos establecer con una
+sola semilla. Las pérdidas son compatibles con un efecto regularizador: sin augmentation, EfficientNet-B0 termina
+con una pérdida de entrenamiento de 0,004 frente a 0,019 en validación, mientras que con augmentation la pérdida de entrenamiento (0,033) queda por
+encima de la de validación (0,019), aunque se calcula sobre imágenes transformadas. En la misma línea, las corridas sin augmentation alcanzan
 su mejor macro-F1 de validación en las épocas 5 y 6, mientras que las corridas con augmentation
 lo hacen en la última época, por lo que podrían beneficiarse de un entrenamiento más largo.
 Como el test proviene de la misma distribución que el entrenamiento, es esperable que el
 beneficio del augmentation aparezca recién ante condiciones de captura distintas
 (Secciones~\ref{subsec:res_robustez} y~\ref{subsec:res_externos}). Por eso elegimos como
-modelo final a EfficientNet-B0 con augmentation: en validación empata con la versión sin
-augmentation (0,9938 contra 0,9942) y, como se muestra más adelante, es mucho más robusto.
+modelo final a EfficientNet-B0 con augmentation: en validación queda ligeramente por debajo
+de la versión sin augmentation (0,9938 contra 0,9942), pero es mucho más robusto ante las
+perturbaciones del test. Esta elección tiene el carácter exploratorio señalado en la
+Sección~\ref{subsec:robustez_metodo}.
 
 \begin{table}[t]
 \centering
@@ -85,7 +86,7 @@ augmentation (0,9938 contra 0,9942) y, como se muestra más adelante, es mucho m
 MobileNetV3-S   & no & 1,39 & 0,992          & 0,987          & 25          \\
 MobileNetV3-S   & sí & 1,39 & 0,985          & 0,985          & 33          \\
 EfficientNet-B0 & no & 3,17 & \textbf{0,994} & 0,990          & 19          \\
-EfficientNet-B0 & sí & 3,17 & \textbf{0,994} & \textbf{0,993} & \textbf{17} \\
+EfficientNet-B0 & sí & 3,17 & 0,994 & \textbf{0,993} & \textbf{17} \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -100,14 +101,14 @@ con un pimiento sano. Solo dos errores confunden una hoja sana con una enferma (
 clasificado como mancha bacteriana). Las confusiones más frecuentes se dan entre enfermedades
 del tomate con síntomas visualmente parecidos: mancha diana contra ácaro araña y tizón tardío
 contra tizón temprano (4 errores cada par). Estos mismos pares ya aparecían como los
-principales errores del linear probe, lo que sugiere una ambigüedad propia de los síntomas más
-que una limitación de un modelo en particular.
+principales errores del linear probe, lo que es compatible con dificultades para distinguir
+síntomas similares, sin establecer la causa de cada error.
 
 \subsection{Explicabilidad (Grad-CAM)}
 \label{subsec:res_gradcam}
 En el conjunto de test completo, el 65,7\,\% de la activación Grad-CAM del modelo final recae
-sobre la hoja, que ocupa en promedio el 40,2\,\% de la imagen: la atención está 1,71 veces más
-concentrada en la hoja de lo que se esperaría por azar. Además, el máximo de activación cae
+sobre la hoja, que ocupa en promedio el 40,2\,\% de la imagen. El cociente medio, calculado
+por imagen, entre $E_{\text{hoja}}$ y el área relativa de la hoja es 1,71. Además, el máximo de activación cae
 dentro de la hoja en el 96,5\,\% de las imágenes (Fig.~\ref{fig:energia_hoja}). Los aciertos
 de la Fig.~\ref{fig:gradcam_ejemplos} muestran que el modelo se enfoca en las lesiones
 necróticas y en las zonas cloróticas.
@@ -121,21 +122,21 @@ en las 2\,949 imágenes de test. Los triángulos marcan los 17 errores; la líne
 \label{fig:energia_hoja}
 \end{figure}
 
-Los errores no se explican por una atención desviada hacia el fondo: su $E_{\text{hoja}}$
-medio (0,58) y su \emph{pointing game} (94\,\%) son apenas menores que los de los aciertos
-(0,66 y 97\,\%). Es decir, el modelo mira la hoja pero interpreta mal síntomas ambiguos. La
-excepción es una hoja de TYLCV de tamaño muy reducido, en la que la activación se extiende
+Los errores también presentan activación concentrada en la hoja: su $E_{\text{hoja}}$
+medio es 0,58 y su \emph{pointing game}, 94\,\%, frente a 0,66 y 97\,\% en los aciertos.
+Esto no permite establecer que se deban a síntomas ambiguos ni descartar información del fondo.
+Un caso con activación extendida sobre el fondo es una hoja de TYLCV de tamaño muy reducido, en la que la activación se extiende
 sobre el fondo (Fig.~\ref{fig:gradcam_ejemplos}, quinta columna). Las clases con menor
 $E_{\text{hoja}}$ son el virus del mosaico (0,50) y el tizón tardío del tomate (0,52), cuyas
 hojas suelen estar enrolladas o deformadas y ocupan menos superficie de la imagen. Parte de la
-activación fuera de la hoja se debe a la baja resolución del mapa ($5\times5$), que al
+activación fuera de la hoja puede deberse a la baja resolución del mapa ($5\times5$), que al
 interpolarse se extiende sobre los bordes. Aun así, que cerca de un tercio de la activación
-caiga fuera de la hoja indica que el fondo no es completamente irrelevante para el modelo, en
-línea con el sesgo descrito en~\cite{noyan2022uncovering}.
+caiga fuera de la hoja no permite descartar contribuciones del fondo; también pueden
+influir errores de la máscara. El fondo es un sesgo conocido de PlantVillage~\cite{noyan2022uncovering}.
 
 \subsection{Robustez ante perturbaciones}
 \label{subsec:res_robustez}
-La Tabla~\ref{tab:robustez} muestra que el data augmentation, que no cambiaba el desempeño en
+La Tabla~\ref{tab:robustez} muestra que el data augmentation, que apenas cambiaba el desempeño en
 el test original, es el factor que determina la robustez. Sin augmentation, ambos modelos
 toleran bien los cambios de iluminación (caídas de macro-F1 de a lo sumo 0,02), pero se
 degradan ante la rotación (0,12 en MobileNetV3-Small y 0,09 en EfficientNet-B0) y, sobre todo,
@@ -181,7 +182,7 @@ sintéticas, no reduce la brecha de dominio. Los errores muestran que el modelo 
 referencias básicas: con augmentation, 20 de las 30 predicciones se concentran en tizón
 temprano o tardío del tomate, y 9 de los 19 errores asignan la hoja a otra especie, en tres
 casos como pimiento sano. Además, 5 errores tienen una confianza mayor al 90\,\%, por lo que la
-confianza del modelo no alcanza para detectar que una imagen está fuera de su dominio. Este
+confianza alta no garantiza un acierto sobre imágenes externas. Este
 resultado, aunque basado en una muestra pequeña, coincide con la caída reportada
 en~\cite{mohanty2016using} y con el desempeño en el campo de~\cite{mrisho2020accuracy}: un
 accuracy cercano al 100\,\% en PlantVillage no se traslada a fotografías tomadas en
@@ -190,13 +191,13 @@ condiciones reales.
 \subsection{Costo computacional}
 \label{subsec:res_costo}
 La Tabla~\ref{tab:costo} compara el costo de inferencia de los dos modelos ajustados en una
-CPU de notebook (Intel Core i7-1355U), con entrada de $160\times160$. Ambos permiten
+CPU de notebook (Intel Core i7-1355U), con entrada de $160\times160$, midiendo solo el
+forward del modelo. Ambos permiten
 clasificar en tiempo real sin GPU: EfficientNet-B0 procesa una imagen en 17,5\,ms y
-MobileNetV3-Small en 7,1\,ms, con un modelo 2,6 veces más liviano (5,9\,MB). Si se prioriza
+MobileNetV3-Small en 7,1\,ms, con un modelo 2,6 veces más liviano (5,9\,MiB). Si se prioriza
 el desempeño, EfficientNet-B0 es la mejor opción para el prototipo. MobileNetV3-Small, que
 comete casi el doble de errores pero es 2,5 veces más rápido y con augmentation resulta
-igualmente robusto, es una alternativa adecuada para dispositivos más limitados, como un
-teléfono de gama baja.
+igualmente robusto, es un candidato para dispositivos más limitados, cuya ejecución debe evaluarse directamente.
 
 \begin{table}[t]
 \centering
@@ -206,7 +207,7 @@ teléfono de gama baja.
 \begin{tabular}{@{}lcccc@{}}
 \toprule
 \textbf{Modelo} & \textbf{Parám.} & \textbf{Tamaño} & \textbf{Latencia bs=1} & \textbf{Throughput} \\
- & (M) & (MB) & media (p95) [ms] & bs=32 [img/s] \\
+ & (M) & (MiB) & media (p95) [ms] & bs=32 [img/s] \\
 \midrule
 MobileNetV3-Small & 1,53 & 5,9  & 7,1 (9,1)   & 931 \\
 EfficientNet-B0   & 4,03 & 15,5 & 17,5 (20,5) & 151 \\
